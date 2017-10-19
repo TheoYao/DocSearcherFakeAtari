@@ -1,0 +1,7 @@
+__pycache__
+*.swp
+*.pyc
+.DS_store
+saved_networkd
+backup*
+DATA
