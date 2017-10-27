@@ -5,6 +5,7 @@ import numpy as np
 import random
 from collections import deque
 
+# np.set_printoptions(threshold=np.nan)
 
 INITIAL_EPSILON = 1.0
 FINAL_EPSILON = 0.1
@@ -106,11 +107,16 @@ class NeuralDQN:
         #      new_state, terminal, doc_cursor)
         # )
 
-        self.replay_memory.append(
-            (self.current_state[-1], action, reward,
-             new_state[-1], terminal, doc_cursor)
-        )
+        # print(self.current_state[self.pre_doc_cursor])
+        # print('haha')
+        # print(new_state[doc_cursor])
+        # print('******************')
 
+        self.replay_memory.append(
+            (self.current_state[self.pre_doc_cursor],
+             action, reward,
+             new_state[doc_cursor], terminal, doc_cursor)
+        )
         if len(self.replay_memory) > REPLAY_MEMORY:
             self.replay_memory.popleft()
         if self.time_step > OBSERVE:
@@ -127,6 +133,7 @@ class NeuralDQN:
         print("TIMESTEP", self.time_step, "/ STATE", state,
               "/ EPSILON", self.epsilon)
         self.current_state = new_state
+        self.pre_doc_cursor = doc_cursor
         self.time_step += 1
 
     def train_q_network(self):
@@ -145,6 +152,7 @@ class NeuralDQN:
                 self.state_input_t: np.expand_dims(next_state_batch, axis=-1)
             }
         )
+        print(q_value_batch)
         for i in range(0, BATCH_SIZE):
             terminal = mini_batch[i][4]
             if terminal:
@@ -199,6 +207,7 @@ class NeuralDQN:
             (observation),
             axis=0
         )
+        self.pre_doc_cursor = 0
 
     def weight_variable(self, shape):
         initial = tf.truncated_normal(shape, stddev=0.01)

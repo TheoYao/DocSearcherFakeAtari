@@ -49,7 +49,7 @@ class DocSeq:
         if self.candi_cursor == len(self.candi_docs):
             sys.exit(0)
 
-        return self.documents, reward, self.is_over, self.doc_cursor
+        return self.documents, reward, self.is_over, self.doc_cursor-1
 
     def load_doc(self):
         data = pickle.load(
