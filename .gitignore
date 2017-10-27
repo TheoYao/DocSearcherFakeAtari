@@ -2,6 +2,6 @@ __pycache__
 *.swp
 *.pyc
 .DS_store
-saved_networkd
+saved_networks
 backup*
 DATA

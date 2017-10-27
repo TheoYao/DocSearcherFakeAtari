@@ -21,6 +21,7 @@ class DocSeq:
     def reset(self):
         self.documents = np.zeros((self.aim_amount, 100, 60))
         self.doc_cursor = 0
+        self.is_over = False
         # return self.get_cur_seq()
 
     def next(self, action):
@@ -51,10 +52,13 @@ class DocSeq:
         return self.documents, reward, self.is_over, self.doc_cursor
 
     def load_doc(self):
-        positive_data = pickle.load(
-            open("../Data/positive.pkl", "rb")
+        data = pickle.load(
+            open("../Data/total.pkl", "rb")
         )
-        positive_docs = positive_data["positive"]
-        # positive_names = positive_data["positive_filename"]
-        positive_docs = list(map(lambda x: [True, x], positive_docs))
-        self.candi_docs = positive_docs
+        positive_docs = data["positive"]
+        negative_docs = data["negative"]
+        # positive_docs = list(map(lambda x: [True, x], positive_docs))
+        # negative_docs = list(map(lambda x: [False, x], negative_docs))
+        self.candi_docs = [item for sublist in zip(
+            negative_docs, positive_docs
+        ) for item in sublist]

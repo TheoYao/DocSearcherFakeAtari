@@ -162,7 +162,7 @@ class NeuralDQN:
 
         if self.time_step % 1000 == 0:
             self.saver.save(self.session,
-                            "saved_networkd/" + "network" + "-dqn",
+                            "saved_networks/" + "network" + "-dqn",
                             global_step=self.time_step)
 
         if self.time_step % UPDATE_TIME == 0:
