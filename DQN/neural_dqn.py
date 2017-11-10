@@ -9,17 +9,21 @@ from collections import deque
 
 INITIAL_EPSILON = 1.0
 FINAL_EPSILON = 0.1
-OBSERVE = 500.
-EXPLORE = 1000.
 REPLAY_MEMORY = 1000000
 GAMMA = 0.95
 BATCH_SIZE = 10
-UPDATE_TIME = 100
 
 
 class NeuralDQN:
-    def __init__(self, action_nums=2):
+    def __init__(self, action_nums=2, search_amount=10):
         self.replay_memory = deque()
+        self.search_amount = search_amount
+
+        DOUBLE_CHOOSE_SKIP_RATE = 4
+        self.OBSERVE = search_amount * DOUBLE_CHOOSE_SKIP_RATE
+        self.EXPLORE = max(1000.0, 10*search_amount)
+        # self.EXPLORE = 100
+        self.UPDATE_TIME = search_amount
 
         self.time_step = 0
         self.epsilon = INITIAL_EPSILON
@@ -98,34 +102,23 @@ class NeuralDQN:
         self.train_step = tf.train.RMSPropOptimizer(
             0.00025, 0.99, 0.0, 1e-6).minimize(self.cost)
 
-    def set_perception(self, next_observation, action,
-                       reward, terminal, doc_cursor):
-        new_state = next_observation
-
-        # self.replay_memory.append(
-        #     (self.current_state, action, reward,
-        #      new_state, terminal, doc_cursor)
-        # )
-
-        # print(self.current_state[self.pre_doc_cursor])
-        # print('haha')
-        # print(new_state[doc_cursor])
-        # print('******************')
-
+    def set_perception(self, next_observation, action, reward):
+        new_state = next_observation if (
+            len(next_observation)) > 0 else self.current_state
         self.replay_memory.append(
-            (self.current_state[self.pre_doc_cursor],
-             action, reward,
-             new_state[doc_cursor], terminal, doc_cursor)
+            (list(self.current_state), action,
+             reward, list(new_state))
         )
         if len(self.replay_memory) > REPLAY_MEMORY:
             self.replay_memory.popleft()
-        if self.time_step > OBSERVE:
+        if self.time_step > self.OBSERVE:
             self.train_q_network()
 
         state = ""
-        if self.time_step <= OBSERVE:
-            state = "observe"
-        elif self.time_step > OBSERVE and self.time_step <= OBSERVE + EXPLORE:
+        if self.time_step <= self.OBSERVE:
+            state = "waiting"
+        elif (self.time_step > self.OBSERVE and
+              self.time_step <= self.OBSERVE + self.EXPLORE):
             state = "explore"
         else:
             state = "train"
@@ -133,34 +126,23 @@ class NeuralDQN:
         print("TIMESTEP", self.time_step, "/ STATE", state,
               "/ EPSILON", self.epsilon)
         self.current_state = new_state
-        self.pre_doc_cursor = doc_cursor
         self.time_step += 1
 
     def train_q_network(self):
         mini_batch = random.sample(self.replay_memory, BATCH_SIZE)
-        # state_batch = [data[0][data[5]] for data in mini_batch]
-        state_batch = [data[0] for data in mini_batch]
 
+        state_batch = [data[0][-1] for data in mini_batch]
         action_batch = [data[1] for data in mini_batch]
         reward_batch = [data[2] for data in mini_batch]
-        # next_state_batch = [data[3][data[5]] for data in mini_batch]
-        next_state_batch = [data[3] for data in mini_batch]
-
+        next_state_batch = [data[3][-1] for data in mini_batch]
         y_batch = []
         q_value_batch = self.q_value_t.eval(
             feed_dict={
                 self.state_input_t: np.expand_dims(next_state_batch, axis=-1)
             }
         )
-        print(q_value_batch)
         for i in range(0, BATCH_SIZE):
-            terminal = mini_batch[i][4]
-            if terminal:
-                y_batch.append(reward_batch[i])
-            else:
-                y_batch.append(
-                    reward_batch[i] + GAMMA * np.max(q_value_batch[i])
-                )
+            y_batch.append(reward_batch[i] + GAMMA * np.max(q_value_batch[i]))
 
         self.train_step.run(feed_dict={
             self.y_input: y_batch,
@@ -173,20 +155,23 @@ class NeuralDQN:
                             "saved_networks/" + "network" + "-dqn",
                             global_step=self.time_step)
 
-        if self.time_step % UPDATE_TIME == 0:
+        if self.time_step % self.UPDATE_TIME == 0:
             self.copy_target_q_network()
 
-        if terminal:
-            # self.reset_save_state()
-            pass
-
-    def make_action(self, doc_cursor):
+    def make_action(self):
         # obtain current q_value
+        # XXX I'm here until you check it!
+        # print('xxx', len(self.current_state))
         q_value = self.q_value.eval(
             feed_dict={
-                self.state_input: np.expand_dims(self.current_state, axis=-1)
+                self.state_input: np.expand_dims(
+                    self.current_state,
+                    axis=-1
+                )
             }
-        )[0]
+        )
+        q_value = q_value[-1]
+        # print(q_value)
         actions = np.zeros(self.action_nums)
         action_index = 0
         if random.random() <= self.epsilon:
@@ -196,18 +181,17 @@ class NeuralDQN:
             action_index = np.argmax(q_value)
             actions[action_index] = 1
 
-        if self.epsilon > FINAL_EPSILON and self.time_step > OBSERVE:
-            self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
+        if self.epsilon > FINAL_EPSILON and self.time_step > self.OBSERVE:
+            self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / self.EXPLORE
 
         return actions
 
-    def set_init_state(self, observation):
-        self.current_state = np.stack(
-            # (np.expand_dims(observation, axis=-1)),
-            (observation),
-            axis=0
+    def set_init_state(self, max_length):
+        self.current_state = deque(
+            (np.zeros((1, 100, 60))).tolist(),
+            maxlen=max_length
         )
-        self.pre_doc_cursor = 0
+        # self.pre_doc_cursor = 0
 
     def weight_variable(self, shape):
         initial = tf.truncated_normal(shape, stddev=0.01)
@@ -233,5 +217,5 @@ class NeuralDQN:
                               strides=[1, 1, 1, 1],
                               padding="VALID")
 
-    def reset_save_state(self):
-        self.replay_memory = deque()
+    # def reset_save_state(self):
+    #     self.replay_memory = deque()
