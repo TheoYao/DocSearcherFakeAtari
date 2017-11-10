@@ -4,8 +4,11 @@ import tensorflow as tf
 import numpy as np
 import random
 from collections import deque
+import matplotlib.pyplot as plt
 
 # np.set_printoptions(threshold=np.nan)
+
+plt.ion()
 
 INITIAL_EPSILON = 1.0
 FINAL_EPSILON = 0.1
@@ -144,11 +147,19 @@ class NeuralDQN:
         for i in range(0, BATCH_SIZE):
             y_batch.append(reward_batch[i] + GAMMA * np.max(q_value_batch[i]))
 
-        self.train_step.run(feed_dict={
-            self.y_input: y_batch,
-            self.action_input: action_batch,
-            self.state_input: np.expand_dims(state_batch, axis=-1),
-        })
+        # train_concern = self.train_step.run(feed_dict={
+        #     self.y_input: y_batch,
+        #     self.action_input: action_batch,
+        #     self.state_input: np.expand_dims(state_batch, axis=-1),
+        # })
+        train_concern = self.session.run(
+           [self.train_step, self.cost],
+           feed_dict={
+               self.y_input: y_batch,
+               self.action_input: action_batch,
+               self.state_input: np.expand_dims(state_batch, axis=-1),
+           }
+        )
 
         if self.time_step % 1000 == 0:
             self.saver.save(self.session,
@@ -157,6 +168,11 @@ class NeuralDQN:
 
         if self.time_step % self.UPDATE_TIME == 0:
             self.copy_target_q_network()
+
+        plt.scatter(self.time_step, train_concern[1],
+                    s=30, c='blue', marker='x')
+        plt.draw()
+        plt.pause(0.05)
 
     def make_action(self):
         # obtain current q_value

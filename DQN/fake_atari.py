@@ -2,6 +2,7 @@
 import pickle
 import sys
 from collections import deque
+import matplotlib.pyplot as plt
 
 
 class DocSeq:
@@ -34,6 +35,8 @@ class DocSeq:
             self.documents.append(doc)
         self.candi_cursor += 1
         if self.candi_cursor == len(self.candi_docs):
+            plt.ioff()
+            plt.show()
             sys.exit(0)
 
         return self.documents, reward  # self.is_over, self.doc_cursor-1
@@ -42,8 +45,8 @@ class DocSeq:
         data = pickle.load(
             open("../Data/total.pkl", "rb")
         )
-        positive_docs = data["positive"]
-        negative_docs = data["negative"]
+        positive_docs = data["positive"][:7000]
+        negative_docs = data["negative"][:7000]
         self.candi_docs = [item for sublist in zip(
             negative_docs, positive_docs
         ) for item in sublist]
