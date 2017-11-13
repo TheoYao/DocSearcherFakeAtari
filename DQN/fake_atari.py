@@ -2,7 +2,7 @@
 import pickle
 import sys
 from collections import deque
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 class DocSeq:
@@ -10,7 +10,9 @@ class DocSeq:
         self.documents = deque(maxlen=aim_amount)
         self.candi_docs = []
         self.candi_cursor = 0
-
+        self.train_test_boundary = 7000
+        self.test_docs = []
+        self.test_cursor = 0
         self.load_doc()
 
     def get_cur_seq(self):
@@ -35,18 +37,30 @@ class DocSeq:
             self.documents.append(doc)
         self.candi_cursor += 1
         if self.candi_cursor == len(self.candi_docs):
-            plt.ioff()
-            plt.show()
+            # plt.ioff()
+            # plt.show()
             sys.exit(0)
 
         return self.documents, reward  # self.is_over, self.doc_cursor-1
+
+    def get_test_document(self):
+        if self.test_cursor == len(self.test_docs):
+            sys.exit(0)
+        self.test_cursor += 1
+        return [self.test_docs[self.test_cursor-1]]
 
     def load_doc(self):
         data = pickle.load(
             open("../Data/total.pkl", "rb")
         )
-        positive_docs = data["positive"][:7000]
-        negative_docs = data["negative"][:7000]
+        positive_docs = data["positive"][:self.train_test_boundary]
+        negative_docs = data["negative"][:self.train_test_boundary]
         self.candi_docs = [item for sublist in zip(
             negative_docs, positive_docs
+        ) for item in sublist]
+
+        test_positive_docs = data["positive"][self.train_test_boundary:]
+        test_negative_docs = data["negative"][self.train_test_boundary:]
+        self.test_docs = [item for sublist in zip(
+            test_negative_docs, test_positive_docs
         ) for item in sublist]

@@ -4,11 +4,11 @@ import tensorflow as tf
 import numpy as np
 import random
 from collections import deque
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # np.set_printoptions(threshold=np.nan)
 
-plt.ion()
+# plt.ion()
 
 INITIAL_EPSILON = 1.0
 FINAL_EPSILON = 0.1
@@ -160,7 +160,8 @@ class NeuralDQN:
                self.state_input: np.expand_dims(state_batch, axis=-1),
            }
         )
-
+        # for not used
+        train_concern
         if self.time_step % 1000 == 0:
             self.saver.save(self.session,
                             "saved_networks/" + "network" + "-dqn",
@@ -169,10 +170,10 @@ class NeuralDQN:
         if self.time_step % self.UPDATE_TIME == 0:
             self.copy_target_q_network()
 
-        plt.scatter(self.time_step, train_concern[1],
-                    s=30, c='blue', marker='x')
-        plt.draw()
-        plt.pause(0.05)
+        # plt.scatter(self.time_step, train_concern[1],
+        #             s=30, c='blue', marker='x')
+        # plt.draw()
+        # plt.pause(0.05)
 
     def make_action(self):
         # obtain current q_value
@@ -235,3 +236,14 @@ class NeuralDQN:
 
     # def reset_save_state(self):
     #     self.replay_memory = deque()
+    def get_q_values(self, docs):
+        array_docs = np.array(docs, dtype=np.float)
+        q_values = self.q_value.eval(
+            feed_dict={
+                self.state_input: np.expand_dims(
+                    array_docs,
+                    axis=-1
+                )
+            }
+        )
+        return q_values

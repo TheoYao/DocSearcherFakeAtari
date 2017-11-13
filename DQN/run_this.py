@@ -1,27 +1,66 @@
 # encoding: utf-8
-
+import sys
+import math
 from neural_dqn import NeuralDQN
 from fake_atari import DocSeq
-
-ACTIONS = ["choose", "skip"]
-TO_SORT_NUMS = 10
+from collections import deque
 
 
-def lets_begin():
-    global ACTIONS
+class white_gloves(object):
+    ACTIONS = ["choose", "skip"]
+    TO_SORT_NUMS = 10
     actions = len(ACTIONS)
     agent = NeuralDQN(actions, TO_SORT_NUMS)
     sorter = DocSeq(TO_SORT_NUMS)
     agent.set_init_state(TO_SORT_NUMS)
-    while 1:
-        action = agent.make_action()
-        # if action[0] > 0:
-        #     action = ACTIONS.index('choose')
-        # else:
-        #     action = ACTIONS.index('skip')
-        observation, reward = sorter.next(action)
-        agent.set_perception(observation, action, reward)
+    test_docs = deque(maxlen=TO_SORT_NUMS)
 
+    @classmethod
+    def lets_begin(cls):
+        while 1:
+            action = cls.agent.make_action()
+            # if action[0] > 0:
+            #     action = ACTIONS.index('choose')
+            # else:
+            #     action = ACTIONS.index('skip')
+            observation, reward = cls.sorter.next(action)
+            cls.agent.set_perception(observation, action, reward)
+
+    @classmethod
+    def lets_test(cls):
+        # cls.agent.set_test_state()
+        while 1:
+            documents = list()
+            while len(documents) < white_gloves.TO_SORT_NUMS:
+                document = [cls.sorter.get_test_document()[0][1]]
+                q_value = cls.agent.get_q_values(document)[0]
+                if q_value[0] > q_value[1]:
+                    documents.append((document, q_value[0]))
+
+            print(white_gloves.get_NDCG(
+                list(map(lambda x: x[-1], documents))
+                )
+            )
+
+    @staticmethod
+    def get_NDCG(q_values):
+        trimed_q_values = list(
+            map(lambda x: 2 ** min(x / 0.2, 5) - 1, q_values)
+        )
+        sorted_q_values = sorted(trimed_q_values, reverse=True)
+        DCG = trimed_q_values[0]
+        for index, q_value in enumerate(trimed_q_values[1:]):
+            DCG += (q_value / math.log(index+2, 2))
+        IDCG = 0.0
+        for index, q_value in enumerate(sorted_q_values[1:]):
+            IDCG += (q_value / math.log(index+2, 2))
+        return DCG / IDCG
 
 if __name__ == "__main__":
-    lets_begin()
+    train_or_test = sys.argv[1]
+    if train_or_test == 'train':
+        white_gloves.lets_train()
+    elif train_or_test == 'test':
+        white_gloves.lets_test()
+    else:
+        print('ハレルヤ')
