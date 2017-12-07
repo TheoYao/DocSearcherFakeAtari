@@ -4,6 +4,7 @@ import math
 from neural_dqn import NeuralDQN
 from fake_atari import DocSeq
 from collections import deque
+import matplotlib.pyplot as plt
 
 
 class white_gloves(object):
@@ -16,7 +17,7 @@ class white_gloves(object):
     test_docs = deque(maxlen=TO_SORT_NUMS)
 
     @classmethod
-    def lets_begin(cls):
+    def lets_train(cls):
         while 1:
             action = cls.agent.make_action()
             # if action[0] > 0:
@@ -29,18 +30,26 @@ class white_gloves(object):
     @classmethod
     def lets_test(cls):
         # cls.agent.set_test_state()
+        plt.ion()
+        time_step = 1
         while 1:
-            documents = list()
-            while len(documents) < white_gloves.TO_SORT_NUMS:
-                document = [cls.sorter.get_test_document()[0][1]]
-                q_value = cls.agent.get_q_values(document)[0]
-                if q_value[0] > q_value[1]:
-                    documents.append((document, q_value[0]))
+            try:
+                documents = list()
+                while len(documents) < white_gloves.TO_SORT_NUMS:
+                    document = [cls.sorter.get_test_document()[0][1]]
+                    q_value = cls.agent.get_q_values(document)[0]
+                    if q_value[0] > q_value[1]:
+                        documents.append((document, q_value[0]))
 
-            print(white_gloves.get_NDCG(
-                list(map(lambda x: x[-1], documents))
-                )
-            )
+                ndcg = white_gloves.get_NDCG(
+                    list(map(lambda x: x[-1], documents)))
+
+                plt.scatter(time_step, ndcg)
+                plt.draw()
+                plt.pause(0.01)
+                time_step += 1
+            except:
+                continue
 
     @staticmethod
     def get_NDCG(q_values):
