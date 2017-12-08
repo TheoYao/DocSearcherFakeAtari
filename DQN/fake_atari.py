@@ -39,8 +39,7 @@ class DocSeq:
         if self.candi_cursor == len(self.candi_docs):
             # plt.ioff()
             # plt.show()
-            sys.exit(0)
-
+            return None, None
         return self.documents, reward  # self.is_over, self.doc_cursor-1
 
     def get_test_document(self):
@@ -53,14 +52,16 @@ class DocSeq:
         data = pickle.load(
             open("../Data/total.pkl", "rb")
         )
+        # XXX
+        self.train_test_boundary = 3600
         positive_docs = data["positive"][:self.train_test_boundary]
         negative_docs = data["negative"][:self.train_test_boundary]
         self.candi_docs = [item for sublist in zip(
             negative_docs, positive_docs
         ) for item in sublist]
 
-        test_positive_docs = data["positive"][self.train_test_boundary:]
-        test_negative_docs = data["negative"][self.train_test_boundary:]
-        self.test_docs = [item for sublist in zip(
-            test_negative_docs, test_positive_docs
-        ) for item in sublist]
+        # test_positive_docs = data["positive"][self.train_test_boundary:]
+        # test_negative_docs = data["negative"][self.train_test_boundary:]
+        # self.test_docs = [item for sublist in zip(
+        #     test_negative_docs, test_positive_docs
+        # ) for item in sublist]

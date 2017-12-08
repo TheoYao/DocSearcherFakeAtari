@@ -18,7 +18,7 @@ BATCH_SIZE = 10
 
 
 class NeuralDQN:
-    def __init__(self, action_nums=2, search_amount=10):
+    def __init__(self, action_nums=2, search_amount=10, average_stage=10):
         self.replay_memory = deque()
         self.search_amount = search_amount
 
@@ -27,10 +27,13 @@ class NeuralDQN:
         self.EXPLORE = max(1000.0, 10*search_amount)
         # self.EXPLORE = 100
         self.UPDATE_TIME = search_amount
+        global BATCH_SIZE
+        BATCH_SIZE = search_amount
 
         self.time_step = 0
         self.epsilon = INITIAL_EPSILON
         self.action_nums = action_nums
+        self.average_stage = average_stage
 
         (self.state_input, self.q_value,
          self.w_conv1, self.b_conv1,
@@ -199,9 +202,13 @@ class NeuralDQN:
             actions[action_index] = 1
 
         if self.epsilon > FINAL_EPSILON and self.time_step > self.OBSERVE:
-            self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / self.EXPLORE
-
-        return actions
+            # self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / self.EXPLORE
+            if self.time_step % self.average_stage == 0:
+                self.epsilon -= (
+                    self.average_stage * (
+                        INITIAL_EPSILON - FINAL_EPSILON) / self.EXPLORE
+                )
+        return actions, q_value
 
     def set_init_state(self, max_length):
         self.current_state = deque(

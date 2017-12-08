@@ -6,3 +6,4 @@ saved_networks
 backup*
 DATA
 log
+*.csv

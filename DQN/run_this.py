@@ -3,28 +3,37 @@ import sys
 import math
 from neural_dqn import NeuralDQN
 from fake_atari import DocSeq
+from statistic import StatMod
 from collections import deque
 import matplotlib.pyplot as plt
 
 
 class white_gloves(object):
     ACTIONS = ["choose", "skip"]
-    TO_SORT_NUMS = 10
+    TO_SORT_NUMS = 40
+    AVERAGE_STAGE = 10
     actions = len(ACTIONS)
-    agent = NeuralDQN(actions, TO_SORT_NUMS)
+
+    agent = NeuralDQN(actions, TO_SORT_NUMS, AVERAGE_STAGE)
     sorter = DocSeq(TO_SORT_NUMS)
+    statistician = StatMod(AVERAGE_STAGE)
+
     agent.set_init_state(TO_SORT_NUMS)
     test_docs = deque(maxlen=TO_SORT_NUMS)
 
     @classmethod
     def lets_train(cls):
         while 1:
-            action = cls.agent.make_action()
+            action, q_value = cls.agent.make_action()
+            cls.statistician.average_q_values.append(q_value)
             # if action[0] > 0:
             #     action = ACTIONS.index('choose')
             # else:
             #     action = ACTIONS.index('skip')
             observation, reward = cls.sorter.next(action)
+            if not observation and not reward:
+                cls.statistician.output()
+                break
             cls.agent.set_perception(observation, action, reward)
 
     @classmethod
@@ -41,12 +50,12 @@ class white_gloves(object):
                     if q_value[0] > q_value[1]:
                         documents.append((document, q_value[0]))
 
-                ndcg = white_gloves.get_NDCG(
-                    list(map(lambda x: x[-1], documents)))
+                # ndcg = white_gloves.get_NDCG(
+                #     list(map(lambda x: x[-1], documents)))
 
-                plt.scatter(time_step, ndcg)
-                plt.draw()
-                plt.pause(0.01)
+                # plt.scatter(time_step, ndcg)
+                # plt.draw()
+                # plt.pause(0.01)
                 time_step += 1
             except:
                 continue
@@ -66,6 +75,7 @@ class white_gloves(object):
         return DCG / IDCG
 
 if __name__ == "__main__":
+    assert(len(sys.argv) > 1)
     train_or_test = sys.argv[1]
     if train_or_test == 'train':
         white_gloves.lets_train()
