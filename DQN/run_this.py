@@ -30,8 +30,11 @@ class white_gloves(object):
             #     action = ACTIONS.index('choose')
             # else:
             #     action = ACTIONS.index('skip')
-            observation, reward = cls.sorter.next(action)
+            observation, reward, is_optimal = cls.sorter.next(action)
+            cls.statistician.average_rewards.append(reward)
+            cls.statistician.is_optimal.append(is_optimal)
             if not observation and not reward:
+                print(observation, reward)
                 cls.statistician.output()
                 break
             cls.agent.set_perception(observation, action, reward)

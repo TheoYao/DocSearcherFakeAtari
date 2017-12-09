@@ -29,18 +29,21 @@ class DocSeq:
         else:
             action_str = 'skip'
         reward = 0
+        is_optimal = 0
         if is_pos:
             reward = 1 if action_str == 'choose' else 0
+            is_optimal = reward
         else:
             reward = -1 if action_str == 'choose' else 0
+            is_optimal = 1 if reward == -1 else 0
         if action_str == 'choose':
             self.documents.append(doc)
         self.candi_cursor += 1
         if self.candi_cursor == len(self.candi_docs):
             # plt.ioff()
             # plt.show()
-            return None, None
-        return self.documents, reward  # self.is_over, self.doc_cursor-1
+            return None, None, None
+        return self.documents, reward, is_optimal
 
     def get_test_document(self):
         if self.test_cursor == len(self.test_docs):
@@ -53,7 +56,7 @@ class DocSeq:
             open("../Data/total.pkl", "rb")
         )
         # XXX
-        self.train_test_boundary = 3600
+        self.train_test_boundary = 200
         positive_docs = data["positive"][:self.train_test_boundary]
         negative_docs = data["negative"][:self.train_test_boundary]
         self.candi_docs = [item for sublist in zip(
