@@ -47,10 +47,13 @@ class white_gloves(object):
             try:
                 documents = list()
                 while len(documents) < white_gloves.TO_SORT_NUMS:
-                    document = [cls.sorter.get_test_document()[0][1]]
+                    ori_document = cls.sorter.get_test_document()[0]
+                    document = [ori_document[1]]
+                    label = ori_document[0]
                     q_value = cls.agent.get_q_values(document)[0]
                     if q_value[0] > q_value[1]:
                         documents.append((document, q_value[0]))
+                        print(q_value[0], label)
 
                 # ndcg = white_gloves.get_NDCG(
                 #     list(map(lambda x: x[-1], documents)))
@@ -59,7 +62,8 @@ class white_gloves(object):
                 # plt.draw()
                 # plt.pause(0.01)
                 time_step += 1
-            except:
+            except Exception as e:
+                print(str(e))
                 continue
 
     @staticmethod

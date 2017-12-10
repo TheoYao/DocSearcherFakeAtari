@@ -62,8 +62,8 @@ class DocSeq:
             negative_docs, positive_docs
         ) for item in sublist]
 
-        # test_positive_docs = data["positive"][self.train_test_boundary:]
-        # test_negative_docs = data["negative"][self.train_test_boundary:]
-        # self.test_docs = [item for sublist in zip(
-        #     test_negative_docs, test_positive_docs
-        # ) for item in sublist]
+        test_positive_docs = data["positive"][self.train_test_boundary:]
+        test_negative_docs = data["negative"][self.train_test_boundary:]
+        self.test_docs = [item for sublist in zip(
+            test_negative_docs, test_positive_docs
+        ) for item in sublist]

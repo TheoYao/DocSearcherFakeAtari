@@ -165,7 +165,7 @@ class NeuralDQN:
         )
         # for not used
         train_concern
-        if self.time_step % 1000 == 0:
+        if self.time_step in [500, 1000, 1500, 2000, 2500]:
             self.saver.save(self.session,
                             "saved_networks/" + "network" + "-dqn",
                             global_step=self.time_step)
