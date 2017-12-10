@@ -15,12 +15,29 @@ def exp_nature(x, A, B):
     return A * np.exp(B/x)
 
 
+def average_cal(name, stage=10):
+    with open(name+'.csv', 'r') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        result = []
+        for row in csv_reader:
+            cur_row_sum = 0
+            for item in row:
+                if not item:
+                    continue
+                cur_row_sum += int(item)
+            result.append(cur_row_sum/stage)
+            if len(result) > 200:
+                break
+    plt.scatter(range(1, len(result)+1), result)
+    plt.show()
+
+
 def draw_this():
     stage = 10
     averages = [0, 0]
     choose = []
     skip = []
-    with open('test_q_values.csv', 'r') as csv_file:
+    with open('average_q_values.csv', 'r') as csv_file:
         csv_reader = csv.reader(csv_file)
         for row in csv_reader:
             for i in range(0, stage):
@@ -44,5 +61,11 @@ def draw_this():
     plt.plot(x1, y1)
     plt.show()
 
+
+def draw_that():
+    average_cal('average_rewards')
+    average_cal('is_optimal')
+
 if __name__ == '__main__':
     draw_this()
+    draw_that()
