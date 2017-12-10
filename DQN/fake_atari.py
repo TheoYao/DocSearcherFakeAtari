@@ -39,7 +39,7 @@ class DocSeq:
         if action_str == 'choose':
             self.documents.append(doc)
         self.candi_cursor += 1
-        if self.candi_cursor == len(self.candi_docs):
+        if self.candi_cursor >= len(self.candi_docs):
             # plt.ioff()
             # plt.show()
             return None, None, None
@@ -56,7 +56,6 @@ class DocSeq:
             open("../Data/total.pkl", "rb")
         )
         # XXX
-        self.train_test_boundary = 200
         positive_docs = data["positive"][:self.train_test_boundary]
         negative_docs = data["negative"][:self.train_test_boundary]
         self.candi_docs = [item for sublist in zip(

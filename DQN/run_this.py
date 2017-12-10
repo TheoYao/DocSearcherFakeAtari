@@ -33,8 +33,7 @@ class white_gloves(object):
             observation, reward, is_optimal = cls.sorter.next(action)
             cls.statistician.average_rewards.append(reward)
             cls.statistician.is_optimal.append(is_optimal)
-            if not observation and not reward:
-                print(observation, reward)
+            if observation is None and reward is None:
                 cls.statistician.output()
                 break
             cls.agent.set_perception(observation, action, reward)
