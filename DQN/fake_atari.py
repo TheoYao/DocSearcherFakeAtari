@@ -46,8 +46,8 @@ class DocSeq:
         return self.documents, reward, is_optimal
 
     def get_test_document(self):
-        if self.test_cursor == len(self.test_docs):
-            sys.exit(0)
+        if self.test_cursor >= len(self.test_docs):
+            return None
         self.test_cursor += 1
         return [self.test_docs[self.test_cursor-1]]
 

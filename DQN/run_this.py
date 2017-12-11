@@ -6,6 +6,7 @@ from fake_atari import DocSeq
 from statistic import StatMod
 from collections import deque
 import matplotlib.pyplot as plt
+import csv
 
 
 class white_gloves(object):
@@ -40,20 +41,28 @@ class white_gloves(object):
 
     @classmethod
     def lets_test(cls):
-        # cls.agent.set_test_state()
+        cls.statistician = StatMod(cls.AVERAGE_STAGE, 'test_500_')
         plt.ion()
         time_step = 1
-        while 1:
+        go_to_stat = 0
+        while not go_to_stat:
             try:
                 documents = list()
                 while len(documents) < white_gloves.TO_SORT_NUMS:
-                    ori_document = cls.sorter.get_test_document()[0]
+                    ori_document = cls.sorter.get_test_document()
+                    if ori_document is None:
+                        go_to_stat = 1
+                        break
+                    ori_document = ori_document[0]
                     document = [ori_document[1]]
                     label = ori_document[0]
                     q_value = cls.agent.get_q_values(document)[0]
                     if q_value[0] > q_value[1]:
+                        print(time_step)
                         documents.append((document, q_value[0]))
-                        print(q_value[0], label)
+                        cls.statistician.average_q_values.append(q_value[0])
+                        is_optimal = 1 if label else 0
+                        cls.statistician.is_optimal.append(is_optimal)
 
                 # ndcg = white_gloves.get_NDCG(
                 #     list(map(lambda x: x[-1], documents)))
@@ -65,6 +74,9 @@ class white_gloves(object):
             except Exception as e:
                 print(str(e))
                 continue
+        print(cls.statistician.average_q_values)
+        cls.statistician.output()
+
 
     @staticmethod
     def get_NDCG(q_values):
