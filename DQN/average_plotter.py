@@ -26,9 +26,13 @@ def average_cal(name, stage=10):
                     continue
                 cur_row_sum += int(item)
             result.append(cur_row_sum/stage)
-            if len(result) > 200:
+            if len(result) > 300:
                 break
-    plt.scatter(range(1, len(result)+1), result)
+    # plt.scatter(range(1, len(result)+1), result)
+    plt.plot(range(10, 10*(len(result)+1), 10), result)
+    plt.title(' '.join(name.split('_')))
+    plt.xlabel('training episode')
+    plt.ylabel(' '.join(name.split('_')))
     plt.show()
 
 
@@ -51,20 +55,30 @@ def draw_this():
             choose.append(averages[0] / stage)
             skip.append(averages[1] / stage)
             averages = [0, 0]
-    plt.scatter(range(0, len(choose)), skip, c='blue', marker='x')
-
+            if len(choose) > 300:
+                break
+    # plt.scatter(range(0, len(choose)), skip, c='blue', marker='x')
+    plt.plot(range(10, 10*(len(choose)+1), 10), skip)
+    plt.title('skip action average q values')
+    plt.xlabel('training episode')
+    plt.ylabel('average q values')
     # A1, B1 = optimize.curve_fit(linear, range(0, len(choose)), skip)[0]
-    A1, B1 = optimize.curve_fit(exp_nature, range(1, len(choose)+1), skip)[0]
-    x1 = np.arange(1, len(skip)+1)
-    # y1 = linear(x1, A1, B1)
-    y1 = exp_nature(x1, A1, B1)
-    plt.plot(x1, y1)
+    # A1, B1 = optimize.curve_fit(exp_nature, range(1, len(choose)+1), skip)[0]
+    # x1 = np.arange(1, len(skip)+1)
+    # y1 = exp_nature(x1, A1, B1)
+    # plt.plot(x1, y1)
+    plt.show()
+
+    plt.title('choose action average q values')
+    plt.xlabel('training episode')
+    plt.ylabel('average q values')
+    plt.plot(range(10, 10*(len(choose)+1), 10), choose)
     plt.show()
 
 
 def draw_that():
     average_cal('average_rewards')
-    average_cal('is_optimal')
+    average_cal('is_optimal_ratio')
 
 if __name__ == '__main__':
     draw_this()

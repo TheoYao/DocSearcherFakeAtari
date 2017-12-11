@@ -35,7 +35,7 @@ class DocSeq:
             is_optimal = reward
         else:
             reward = -1 if action_str == 'choose' else 0
-            is_optimal = 1 if reward == -1 else 0
+            is_optimal = 0 if reward == -1 else 1
         if action_str == 'choose':
             self.documents.append(doc)
         self.candi_cursor += 1
