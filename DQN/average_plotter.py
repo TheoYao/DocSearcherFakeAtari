@@ -24,7 +24,7 @@ def average_cal(name, stage=10):
             for item in row:
                 if not item:
                     continue
-                cur_row_sum += int(item)
+                cur_row_sum += float(item)
             result.append(cur_row_sum/stage)
             if len(result) > 300:
                 break
@@ -79,6 +79,7 @@ def draw_this():
 def draw_that():
     average_cal('average_rewards')
     average_cal('is_optimal_ratio')
+    average_cal('NDCG')
 
 if __name__ == '__main__':
     draw_this()

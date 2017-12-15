@@ -6,7 +6,6 @@ from fake_atari import DocSeq
 from statistic import StatMod
 from collections import deque
 import matplotlib.pyplot as plt
-import csv
 
 
 class white_gloves(object):
@@ -17,15 +16,23 @@ class white_gloves(object):
 
     agent = NeuralDQN(actions, TO_SORT_NUMS, AVERAGE_STAGE)
     sorter = DocSeq(TO_SORT_NUMS)
-    statistician = StatMod(AVERAGE_STAGE)
+    statistician = StatMod(AVERAGE_STAGE, TO_SORT_NUMS)
 
     agent.set_init_state(TO_SORT_NUMS)
     test_docs = deque(maxlen=TO_SORT_NUMS)
+
+    ndcg_q_values = []
 
     @classmethod
     def lets_train(cls):
         while 1:
             action, q_value = cls.agent.make_action()
+
+            if q_value[0] > q_value[1]:
+                cls.ndcg_q_values.append(q_value[0])
+                cls.ndcg_q_values = cls.ndcg_q_values[-1 * cls.TO_SORT_NUMS:]
+                cls.statistician.NDCG.append(cls.get_NDCG(cls.ndcg_q_values))
+
             cls.statistician.average_q_values.append(q_value)
             # if action[0] > 0:
             #     action = ACTIONS.index('choose')
@@ -77,7 +84,6 @@ class white_gloves(object):
         print(cls.statistician.average_q_values)
         cls.statistician.output()
 
-
     @staticmethod
     def get_NDCG(q_values):
         trimed_q_values = list(
@@ -90,7 +96,8 @@ class white_gloves(object):
         IDCG = 0.0
         for index, q_value in enumerate(sorted_q_values[1:]):
             IDCG += (q_value / math.log(index+2, 2))
-        return DCG / IDCG
+
+        return DCG / IDCG if IDCG else 0
 
 if __name__ == "__main__":
     assert(len(sys.argv) > 1)
