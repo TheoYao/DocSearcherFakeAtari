@@ -35,15 +35,19 @@ class NeuralDQN:
         self.action_nums = action_nums
         self.average_stage = average_stage
 
-        (self.state_input, self.q_value,
+        (self.state_input,
+         self.rnn_seq_length,
+         self.q_value,
          self.w_conv1, self.b_conv1,
          self.w_conv2, self.b_conv2,
-         self.w_fc1, self.b_fc1) = self.create_q_network()
+         self.w_fc1, self.b_fc1) = self.create_q_network(reuse=False)
 
-        (self.state_input_t, self.q_value_t,
+        (self.state_input_t,
+         self.rnn_seq_length_t,
+         self.q_value_t,
          self.w_conv1_t, self.b_conv1_t,
          self.w_conv2_t, self.b_conv2_t,
-         self.w_fc1_t, self.b_fc1_t) = self.create_q_network()
+         self.w_fc1_t, self.b_fc1_t) = self.create_q_network(reuse=True)
 
         self.copy_target_q_network_operation = [
             self.w_conv1_t.assign(self.w_conv1),
@@ -58,7 +62,6 @@ class NeuralDQN:
 
         self.saver = tf.train.Saver()
         self.session = tf.InteractiveSession()
-        # self.session.run(tf.initialize_all_variables())
         self.session.run(tf.global_variables_initializer())
         checkoutpoint = tf.train.get_checkpoint_state("saved_networks")
         if checkoutpoint and checkoutpoint.model_checkpoint_path:
@@ -68,9 +71,10 @@ class NeuralDQN:
         else:
             print("Could not find old network weights")
 
-    def create_q_network(self):
+    def create_q_network(self, reuse):
         state_in = tf.placeholder("float", [None, 100, 60, 1])
         state_input = tf.reshape(state_in, [-1, 100, 60, 1])
+        rnn_seq_length = tf.placeholder(tf.int32)
 
         w_conv1 = self.weight_variable([1, 30, 1, 32])
         b_conv1 = self.bias_variable([32])
@@ -83,17 +87,18 @@ class NeuralDQN:
         h_pool2 = self.max_pool_2x1(h_conv2)
 
         h_pool2_flat = tf.reshape(h_pool2, [-1, 98 * 1 * 64])
+        pred = self.RNN(h_pool2_flat, reuse, rnn_seq_length)
 
         w_fc1 = self.weight_variable([98 * 1 * 64, 1024])
         b_fc1 = self.bias_variable([1024])
-        h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, w_fc1) + b_fc1)
+        h_fc1 = tf.nn.relu(tf.matmul(pred, w_fc1) + b_fc1)
 
         w_fc2 = self.weight_variable([1024, self.action_nums])
         b_fc2 = self.bias_variable([self.action_nums])
 
         q_value = tf.matmul(h_fc1, w_fc2) + b_fc2
 
-        return (state_input, q_value, w_conv1, b_conv1,
+        return (state_input, rnn_seq_length, q_value, w_conv1, b_conv1,
                 w_conv2, b_conv2, w_fc1, b_fc1,)
 
     def copy_target_q_network(self):
@@ -144,7 +149,8 @@ class NeuralDQN:
         y_batch = []
         q_value_batch = self.q_value_t.eval(
             feed_dict={
-                self.state_input_t: np.expand_dims(next_state_batch, axis=-1)
+                self.state_input_t: np.expand_dims(next_state_batch, axis=-1),
+                self.rnn_seq_length: len(next_state_batch),
             }
         )
         for i in range(0, BATCH_SIZE):
@@ -161,6 +167,7 @@ class NeuralDQN:
                self.y_input: y_batch,
                self.action_input: action_batch,
                self.state_input: np.expand_dims(state_batch, axis=-1),
+               self.rnn_seq_length: len(state_batch),
            }
         )
         # for not used
@@ -187,7 +194,8 @@ class NeuralDQN:
                 self.state_input: np.expand_dims(
                     self.current_state,
                     axis=-1
-                )
+                ),
+                self.rnn_seq_length: len(self.current_state),
             }
         )
         q_value = q_value[-1]
@@ -243,6 +251,39 @@ class NeuralDQN:
 
     # def reset_save_state(self):
     #     self.replay_memory = deque()
+    def RNN(self, X, reuse, rnn_seq_length):
+        rnn_inputs = 98*1*64
+        rnn_hidden_units = 64  # TODO
+        rnn_classes = 98*1*64
+        # rnn_steps = 98
+        # Define weights
+        weights = {
+            'in': tf.Variable(tf.random_normal([rnn_inputs, rnn_hidden_units])),
+            'out': tf.Variable(
+                tf.random_normal([rnn_hidden_units, rnn_classes])
+            )
+        }
+        biases = {
+            'in': tf.Variable(tf.constant(0.1, shape=[rnn_hidden_units, ])),
+            'out': tf.Variable(tf.constant(0.1, shape=[rnn_classes, ]))
+        }
+
+        X_in = tf.matmul(X, weights['in']) + biases['in']
+        # X_in = tf.reshape(X_in, [-1, rnn_steps, rnn_hidden_units])
+
+        cell = tf.contrib.rnn.BasicLSTMCell(rnn_hidden_units, reuse=reuse)
+        init_state = cell.zero_state(BATCH_SIZE, dtype=tf.float32)
+
+        outputs, final_state = tf.nn.dynamic_rnn(
+            cell, X_in, initial_state=init_state,
+            time_major=False, sequence_length=rnn_seq_length
+        )
+
+        outputs = tf.unstack(tf.transpose(outputs, [1, 0, 2]))
+        results = tf.matmul(outputs[-1], weights['out']) + biases['out']
+
+        return results
+
     def get_q_values(self, docs):
         array_docs = np.array(docs, dtype=np.float)
         q_values = self.q_value.eval(
@@ -250,7 +291,8 @@ class NeuralDQN:
                 self.state_input: np.expand_dims(
                     array_docs,
                     axis=-1
-                )
+                ),
+                self.rnn_seq_length: len(array_docs),
             }
         )
         return q_values
