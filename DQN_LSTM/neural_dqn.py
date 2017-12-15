@@ -150,7 +150,7 @@ class NeuralDQN:
         q_value_batch = self.q_value_t.eval(
             feed_dict={
                 self.state_input_t: np.expand_dims(next_state_batch, axis=-1),
-                self.rnn_seq_length: len(next_state_batch),
+                self.rnn_seq_length_t: len(next_state_batch),
             }
         )
         for i in range(0, BATCH_SIZE):
@@ -253,7 +253,7 @@ class NeuralDQN:
     #     self.replay_memory = deque()
     def RNN(self, X, reuse, rnn_seq_length):
         rnn_inputs = 98*1*64
-        rnn_hidden_units = 64  # TODO
+        rnn_hidden_units = 128  # TODO
         rnn_classes = 98*1*64
         # rnn_steps = 98
         # Define weights
@@ -270,16 +270,18 @@ class NeuralDQN:
 
         X_in = tf.matmul(X, weights['in']) + biases['in']
         # X_in = tf.reshape(X_in, [-1, rnn_steps, rnn_hidden_units])
+        X_in = tf.reshape(X_in, [-1, rnn_seq_length, rnn_hidden_units])
 
         cell = tf.contrib.rnn.BasicLSTMCell(rnn_hidden_units, reuse=reuse)
-        init_state = cell.zero_state(BATCH_SIZE, dtype=tf.float32)
+        # init_state = cell.zero_state(BATCH_SIZE, dtype=tf.float32)
+        init_state = cell.zero_state(1, dtype=tf.float32)
 
         outputs, final_state = tf.nn.dynamic_rnn(
             cell, X_in, initial_state=init_state,
             time_major=False, sequence_length=rnn_seq_length
         )
 
-        outputs = tf.unstack(tf.transpose(outputs, [1, 0, 2]))
+        # outputs = tf.unstack(tf.transpose(outputs, [1, 0, 2]))
         results = tf.matmul(outputs[-1], weights['out']) + biases['out']
 
         return results
